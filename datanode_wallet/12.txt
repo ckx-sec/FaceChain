@@ -1,0 +1,2 @@
+Private key: e80bfdc06138dcbddc41d5c4e763e40fefad301b2cf26426edc83cab45dd8674
+Wallet address / Public key: Ks3Pi0s/BP+puCySpt7h0hGjK++aIF2CFDZ6RNtJQtgg/z8Ow2qx0FYAMg7IUx5D+sEuAGUu3cGJn/kZUvhTzg==
