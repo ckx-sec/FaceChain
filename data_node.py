@@ -1,11 +1,13 @@
 from time import sleep
 from flask import Flask
-from demo import *
+# from demo import *
+from models import *
 import requests
-app = Flask(__name__)
+import sys
 
+name=sys.argv[1]
 # TODO 补上ip
-this = datanode('alskdfhasjhdflkjahsdlfhalskjdfhlakjsdhflkj', 'localhost:5000')
+this = datanode(f'datanode_{name}', 'localhost:5000')
 
 # TODO 处理图片
 this.training_images_hash = store_in_IPFS(this, this.train_images)
@@ -25,7 +27,9 @@ while True:
     try:
         resp = requests.get(f'http://{this.company_addr}/get_z')
         this.z = resp.json()['z']
-    except ValueError:
+        print('z: ', len(this.z))
+    except ValueError as e:
+        # print(e)
         sleep(1)
         continue
     break

@@ -1,0 +1,4 @@
+*.log
+companynode_wallet/*
+consensusnode_wallet/*
+datanode_wallet/*

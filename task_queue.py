@@ -18,7 +18,10 @@ def get_front():
 
 @app.route('/pop_front', methods=['GET'])
 def pop_front():
-    return TASK_QUEUE.pop(0)
+    if len(TASK_QUEUE) == 1:
+        return TASK_QUEUE[0]
+    else:
+        return TASK_QUEUE.pop(0)
 
 
 app.run('127.0.0.1', 9000)

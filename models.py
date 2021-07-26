@@ -5,14 +5,12 @@ import ecdsa
 import base64
 import random
 import time
-import requests
 import numpy as np
 
 # images setting
 TRAIN = 8
 TEST = 2
 ALL = TRAIN + TEST
-
 
 class node:
     def __init__(self):
@@ -130,6 +128,7 @@ class datanode(node):
         """
         Compute sk
         """
+        print(f'msk: {len(self.msk)}, z: {len(self.z)}')
         s = np.array(self.msk)
         z = np.array(self.z)
         self.sk = list(np.matmul(s, z))
@@ -268,59 +267,6 @@ class consensusnode(node):
         acc = random.random()
         return acc
 
-    def generate_block(self, blockchain: list[Block]):
-        LAST_BLOCK = blockchain[-1]
-        index = LAST_BLOCK.index
-        company_public_key = LAST_BLOCK.task['company']
-        mpks_hash = LAST_BLOCK.task['mpks_hash']
-        train_images_hash = LAST_BLOCK.task['training_images_hash']
-        last_hash = LAST_BLOCK.hash
-
-        """
-        wait for sks(同步关键)
-        """
-        for i in COMPANY_NODES:
-            if(i.public_key == company_public_key):
-                sign_sks = i.sign_sks
-                sks = i.sks
-                sign_mpks = i.sign_mpks
-        mpks = find_in_IPFS(self, mpks_hash)
-        train_images = find_in_IPFS(self, train_images_hash)
-        acc, model = self.train_model(
-            sks, sign_sks, mpks, sign_mpks, train_images)
-        """
-        task receive from tasklist
-        """
-        task = TASKLIST[0]
-        new_block = Block(index+1, time.time(), {'node': self.public_key, 'acc': acc,
-                          'model': model, 'company': company_public_key}, task, last_hash)
-        """
-        send to other nodes /DP-Face/new_blocks
-        """
-        BLOCK_CACHE.append(new_block)
-        return new_block
-
-    def get_winner(self):
-        max_acc = {'acc': -1}
-        block_cache_list: list[Block] = BLOCK_CACHE
-        """
-        receive the block_cache_list
-        """
-        test_images_hash = ''
-        """
-        get the test_images_hash
-        """
-        test_images = find_in_IPFS(self, test_images_hash)
-        for new_block in block_cache_list:
-            acc = self.vertify_model(new_block.model['model'], test_images)
-            if acc > max_acc['acc']:
-                max_acc = new_block
-
-        """
-        broadcast the vertify_block to consensusnodelist
-        """
-        return max_acc
-
     def hand_over(self, block: Block):
         self.send_to_company(block.model['company'])
 
@@ -361,35 +307,10 @@ class Block:
         block.__dict__ = d
         return block
 
-# blockchain
-
 
 def create_genesis_block(public_key):
     # return Block(0, time.time(), {'node': '', 'acc': -1, 'model': '', 'company': ''}, {'company': public_key,'company_ip':'', 'mpks_hash': '', 'training_images_hash': ''}, '0')
     return Block(0, time.time(), {'node': '', 'acc': -1, 'model': '', 'company': ''}, {'company': [public_key,''], 'mpks_hash': '', 'training_images_hash': ''}, '0')
-
-
-def collect_sks(company_address):
-    for company in COMPANY_NODES:
-        if(company.public_key == company_address):
-            for employee in company.employeelist:
-                employee.send_sk_to_companynode()
-            return True
-    print("can't find the company address:{}".format(company.public_key))
-    return False
-
-
-def issue_sks(public_key):
-    for company in COMPANY_NODES:
-        if(company.public_key == public_key):
-            if company.sks:
-                for consensus in CONSENSUS_NODES:
-                    company.send_sks_to_consensusnode(consensus)
-                return True
-            print("the company {}' sks not exist\n".format(company.public_key))
-            return False
-    print("can't find the company address:{}".format(company.public_key))
-    return False
 
 
 # IPFS
@@ -411,7 +332,7 @@ def find_in_IPFS(node: node, data_hash):
 
     Return data(json)
     """
-    a = hashlib.sha256().update(b"adsdads")
+    a = hashlib.sha256(b'adsads').hexdigest()
     b = [random.random() for _ in range(512)]
     data = {'public_key': a, 'data': b}
 
@@ -445,103 +366,3 @@ def padding_z(z: list, n, r=1):
         z.append([(random.random()-0.5)*r for _ in range(512)])
     return z
 
-
-BLOCKCHAIN: list[Block] = []
-BLOCK_CACHE: list[Block] = []
-TASKLIST: list = []
-# consensusnode list
-CONSENSUS_NODES: list[consensusnode] = []
-# companynode list
-COMPANY_NODES: list[companynode] = []
-
-
-if __name__ == '__main__':
-    """
-    Step 1: register node list
-    """
-    for i in range(1):
-        consensus = consensusnode(i+1)
-        CONSENSUS_NODES.append(consensus)
-    for i in range(1):
-        company = companynode(i+1)
-        COMPANY_NODES.append(company)
-    for i in COMPANY_NODES:
-        for j in range(1, 14):
-            employee = datanode(j, i.ip_addr)
-            i.employeelist.append(employee)
-    print("register finish")
-
-    """
-    Step 2: initial blockchain
-    """
-    BLOCKCHAIN = [create_genesis_block(COMPANY_NODES[0].public_key)]
-
-    """
-    Step 3: datanode upload images,mpk
-    """
-    for i in COMPANY_NODES:
-        for j in i.employeelist:
-            j.mpk_hash = store_in_IPFS(j, j.mpk_hash)
-            j.training_images_hash = store_in_IPFS(j, j.train_images)
-            j.test_images_hash = store_in_IPFS(j, j.test_images)
-
-    """
-    Step 4: datanode send mpk_hash, train_image_hash to company
-            companynode receive mpks, padding to 512*512 matrix called z, then send to datanode back
-            datanode receive z, compute sk, send to companynode back
-    """
-    for i in COMPANY_NODES:
-        for j in i.employeelist:
-            i.get_mpk_hash(j)
-        # collect all mpks
-        for k in i.mpks_hash:
-            node_mpk = find_in_IPFS(i, k)
-            i.mpks.append(node_mpk['data'])
-            i.sign_mpks.append(node_mpk['public_key'])
-
-    # companynode pad mpks to z
-    for i in COMPANY_NODES:
-        i.z = padding_z(i.mpks, 512-len(i.employeelist))
-
-    # datanode get z
-    for i in COMPANY_NODES:
-        for j in i.employeelist:
-            j.get_z(i)
-
-    # datanode compute sk
-    for i in COMPANY_NODES:
-        for j in i.employeelist:
-            j.compute_sk()
-
-    # companynode collect sks
-    for i in COMPANY_NODES:
-        for j in i.employeelist:
-            i.get_sk(j)
-
-    """
-    Step 5: companynode issue task
-    """
-    for i in COMPANY_NODES:
-        TASKLIST = i.issue_task(TASKLIST)
-
-    """
-    Step 6: consensusnode mine and broadcast to others
-    """
-    for i in CONSENSUS_NODES:
-        i.generate_block(BLOCKCHAIN)
-
-    for i in CONSENSUS_NODES:
-        block: Block = i.get_winner()
-    BLOCKCHAIN.append(block)
-    """
-    Step 7: the winner node hand over to the task owner
-    """
-    for i in CONSENSUS_NODES:
-        i.hand_over(block)
-
-    """
-    Step 8: tasklist update
-    """
-    del(TASKLIST[0])
-
-    print("Finish one turn")

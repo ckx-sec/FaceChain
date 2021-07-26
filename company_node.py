@@ -2,7 +2,9 @@ import threading
 from time import sleep
 from typing import Dict, List, Tuple
 from flask import Flask, json, request
-from demo import *
+import requests
+# from demo import *
+from models import *
 #app = Flask(__name__)
 
 serve_datanode = Flask('serve_datanode')
@@ -25,12 +27,18 @@ class DataNode:
 
 TASK_QUEUE_ADDR = '127.0.0.1:9000'
 DATANODES: Dict[str, DataNode] = {}
-DATANODE_MAX_COUNT = 1
+DATANODE_MAX_COUNT = 10
 CONSENSUS_NODES: List[consensusnode] = []
 # TODO 事先准备好几个共识节点
 
 # TODO 使用更安全的方法结束flask server
 
+# 训练完的模型
+RESULT=[]
+
+REGISTER_READY:bool=False
+
+TURN_END=False
 
 def shutdown_server():
     func = request.environ.get('werkzeug.server.shutdown')
@@ -53,6 +61,7 @@ def shutdown():
 
 @serve_datanode.route('/register', methods=['POST'])
 def register_datanode():
+    global REGISTER_READY
     '''把节点信息在company节点记录一下'''
     print('register: '+request.get_data(as_text=True))
     datanode_count = len(DATANODES)
@@ -62,8 +71,12 @@ def register_datanode():
         DATANODES[public_key] = DataNode(public_key, mpk_hash)
 
         mpk = find_in_IPFS(None, mpk_hash)  # TODO 实现
-        if datanode_count == DATANODE_MAX_COUNT-1:
-            this.z = padding_z(this.mpks, 512-len(this.employeelist))
+        this.sign_mpks.append(mpk['public_key'])
+        this.mpks.append(mpk['data'])
+        if datanode_count == DATANODE_MAX_COUNT - 1:
+            # this.z = padding_z(this.mpks, 512-len(this.employeelist)) TODO 整合employeelist与DATANODES
+            this.z = padding_z(this.mpks, 512-len(this.mpks))
+            REGISTER_READY = True
         return 'Success'
     return 'Fail'
 
@@ -71,7 +84,8 @@ def register_datanode():
 @serve_datanode.route('/get_z', methods=['GET'])
 def get_z():
     # TODO padding
-    if len(DATANODES) == DATANODE_MAX_COUNT:
+    # if len(DATANODES) == DATANODE_MAX_COUNT:
+    if REGISTER_READY:
         return json.dumps({'z': this.z})
     return 'Error\n'
 
@@ -80,8 +94,9 @@ def get_z():
 def submit_sk():
     public_key = request.form['public_key']
     if public_key in DATANODES:
-        sk = request.form['sk']
+        sk = float(request.form['sk'])
         DATANODES[public_key].sk = sk
+        this.sign_sks.append(public_key)
         this.sks.append(sk)
         return 'Success'
     return 'Fail'
@@ -104,7 +119,8 @@ def get_test_images_hash():
 
 @serve_consensus_node.route('/keys', methods=['GET'])
 def keys():
-    if len(this.sks) == len(this.employeelist):
+    # if len(this.sks) == len(this.employeelist): TODO 整合employeelist与DATANODES
+    if len(this.sks) == len(DATANODES):
         return json.dumps({'sks': this.sks, 'sign_sks': this.sign_sks, 'sign_mpks': this.sign_mpks})
     else:
         return 'Fail'
@@ -115,7 +131,8 @@ def release_task():
     task = {
         'mpks': this.mpks,
         'training_images_hash': this.train_images_hash,
-        'company': [this.public_key, this.ip_addr]
+        'company': [this.public_key, this.ip_addr],
+        'mpks_hash': ''
     }
     # TODO 实现
     requests.post(f'http://{TASK_QUEUE_ADDR}/push_back', data=json.dumps(task))
@@ -123,9 +140,19 @@ def release_task():
 
 # TODO 从共识节点接收训练好的模型
 
+@serve_consensus_node.route('/submit_model',methods=['POST'])
+def receive_model():
+    global TURN_END
+    model = request.get_json(force=True)
+    RESULT.append(model)
+    requests.get(f'http://{TASK_QUEUE_ADDR}/pop_front')
+    TURN_END = True
+    return 'Success'
+
 
 if __name__ == '__main__':
     while True:
+        TURN_END=False
         t = threading.Thread(
             target=lambda: serve_datanode.run('127.0.0.1', 5000, debug=True,use_reloader=False),
             name='flask_thread')
@@ -133,8 +160,11 @@ if __name__ == '__main__':
 
         # TODO 设置training_images_hash(两堆变成两个)
         # TODO 在某个时刻调用release_task
-        sleep(10)
-        input('press a key to continue')
+        # sleep(10)
+        while not REGISTER_READY:
+            sleep(1)
+        sleep(1)
+        # input('press a key to continue')
         release_task()
         requests.get(f'http://{this.ip_addr}/shutdown')
         sleep(1)
@@ -145,5 +175,9 @@ if __name__ == '__main__':
             name='flask_thread')
         t.start()
         sleep(20)
-        input('press a key to continue')
+        # input('press a key to continue')
+        while not TURN_END:
+            sleep(1)
+        sleep(10000000) # TODO 下一轮
         requests.get(f'http://{this.ip_addr}/shutdown')
+        sleep(1)
