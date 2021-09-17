@@ -140,3 +140,7 @@ cython_debug/
 IPFS/database
 blockchain/
 wallet/*node/
+crypto/pixel2style2pixel/result_data/
+crypto/pixel2style2pixel/pretrained_models/
+crypto/pixel2style2pixel/inversion_images/
+crypto/pixel2style2pixel/.ipynb_checkpoints/
