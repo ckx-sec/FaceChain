@@ -1,0 +1,5 @@
+ecdsa
+Flask
+numpy
+PySide2
+requests
