@@ -1,7 +1,13 @@
 # FaceChain
 ### System Workflow and Core Algorithms
 ![facechain](./img/facechain.png)
-In FaceChain, there are three types of users: data nodes, company nodes and consensus nodes, forming a p2p network. Data nodes possess private facial data and the data is locally processed by a differential privacy (DP) protocol so as to remove the sensitivity in the data. The desensitized facial data is then encrypted following a inner product functional encryption (IPFE) algorithm and the cipher data is then stored in a decentralized interplanetary file system (IPFS) and a unique hash is returned to the data owner for retrieval. A company node collects its emplyers' facial data hashes and publishes a face recognition task transaction in the blockchain network composed by consensus nodes. The tasks are then recorded and trained by the consensus nodes by following the proof of learning (PoLe) consensus protocol proposed in our previous work.
+In FaceChain, there are three types of users: data nodes, company nodes and consensus nodes, forming a p2p network.
+
+Data nodes possess private facial data and the data is locally processed by a differential privacy (DP) protocol so as to remove the sensitivity in the data. The desensitized facial data is then encrypted following a inner product functional encryption (IPFE) algorithm and the cipher data is then stored in a decentralized interplanetary file system (IPFS) and a unique hash is returned to the data owner for retrieval. 
+
+A company node collects its emplyers' facial data hashes and publishes a face recognition task transaction in the blockchain network composed by consensus nodes. 
+
+The tasks are then recorded and trained by the consensus nodes by following the proof of learning (PoLe) consensus protocol.
 
 ### Case Demonstration
 ![lc](./img/lc.png)
@@ -9,11 +15,17 @@ We illustrate the system logic in a case chosen in celebA dataset and present ho
 
 ### Usage
 step 1: start the IPFS docker and add into the private network.
+
 step 2: start data node、company node、consensus node
 ```python
  python3 gui_main.py
  ```
+ 
+ 
  step 3: image encrypt and upload
+ 
  step 4: release the task
+ 
  step 5: train the model
+ 
  step 6: use the model to do the face recognization
