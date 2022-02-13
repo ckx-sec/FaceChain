@@ -11,7 +11,7 @@ The tasks are then recorded and trained by the consensus nodes by following the 
 
 ### Case Demonstration
 ![lc](./img/lc.png)
-We illustrate the system logic in a case chosen in celebA dataset and present how a face recognition model is trained and tested as shown in Figure \ref{fig:case}. A face image of a girl is processes by DP to generate an image from which the identity of the girl can not be matched. The image is then encrypted to obtain a feature based grayscale image which is used to train a model by PoLe blockchain consensus network for a company employing the girl. With the model, the company can recognition the attendance of the girl's face where the test face is also encrypted without leaking the girl's privacy. In this way, the privacy of face images are preserved during storage, training, and usage.
+We illustrate the system logic in a case chosen in celebA dataset and present how a face recognition model is trained and tested as shown above. A face image of a girl is processes by DP to generate an image from which the identity of the girl can not be matched. The image is then encrypted to obtain a feature based grayscale image which is used to train a model by PoLe blockchain consensus network for a company employing the girl. With the model, the company can recognition the attendance of the girl's face where the test face is also encrypted without leaking the girl's privacy. In this way, the privacy of face images are preserved during storage, training, and usage.
 
 ### Usage
 step 1: start the IPFS docker and add into the private network.
